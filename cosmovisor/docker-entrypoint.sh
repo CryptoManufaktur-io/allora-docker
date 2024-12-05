@@ -3,7 +3,7 @@ set -euo pipefail
 
 # This is specific to each chain.
 __daemon_version_number=$(echo "$DAEMON_VERSION" | sed 's/^v//')
-__daemon_download_url=https://github.com/allora-network/allora-chain/releases/download/$DAEMON_VERSION/allora-chain_$__daemon_version_number_linux_amd64
+__daemon_download_url=https://github.com/allora-network/allora-chain/releases/download/$DAEMON_VERSION/allora-chain_${__daemon_version_number}_linux_amd64
 __config_url="https://raw.githubusercontent.com/allora-network/networks/refs/heads/main/${NETWORK}"
 __genesis_url="${__config_url}/genesis.json"
 __seeds_url="${__config_url}/seeds.txt"
@@ -28,13 +28,20 @@ if [[ ! -f /cosmos/.initialized ]]; then
 
   # Create base config.
   echo "Running init..."
-  $__genesis_path/bin/$DAEMON_NAME init $MONIKER --chain-id $NETWORK --home /cosmos --default-denom $DENOM --overwrite
+  $__genesis_path/bin/$DAEMON_NAME init $MONIKER --chain-id $NETWORK --home /cosmos --default-denom $__denom --overwrite
 
   echo "Downloading genesis file"
   wget $__genesis_url -O /cosmos/config/genesis.json
 
   $__genesis_path/bin/$DAEMON_NAME --home=/cosmos config set client chain-id ${NETWORK}
   $__genesis_path/bin/$DAEMON_NAME --home=/cosmos config set client keyring-backend test
+
+  # Always bring the latest config files.
+  wget $__config_url/app.toml -O /cosmos/config/app.toml
+  wget $__config_url/config.toml -O /cosmos/config/config.toml
+
+  # Don't enable statesync by default.
+  dasel put -f /cosmos/config/config.toml -v false statesync.enable
 
   if [ -n "$SNAPSHOT" ]; then
     echo "Downloading snapshot..."
@@ -159,11 +166,6 @@ else
   echo "No updates needed."
 fi
 
-echo "Updating config..."
-# Always bring the latest config files.
-wget $__config_url/app.toml -O /cosmos/config/app.toml
-wget $__config_url/config.toml -O /cosmos/config/config.toml
-
 # Get public IP address.
 __public_ip=$(curl -s ifconfig.me/ip)
 echo "Public ip: ${__public_ip}"
@@ -181,13 +183,16 @@ dasel put -f /cosmos/config/app.toml -v "0.0.0.0:${CL_GRPC_PORT}" grpc.address
 dasel put -f /cosmos/config/app.toml -v true telemetry.enabled
 dasel put -f /cosmos/config/client.toml -v "tcp://localhost:${CL_RPC_PORT}" node
 
+_seeds=$(curl -Ls ${__seeds_url})
+_peers=$(curl -Ls ${__peers_url})
+
 # cosmovisor will create a subprocess to handle upgrades
 # so we need a special way to handle SIGTERM
 
 # Start the process in a new session, so it gets its own process group.
 # Word splitting is desired for the command line parameters
 # shellcheck disable=SC2086
-setsid "$@" --minimum-gas-prices=$MIN_GAS_PRICE --p2p.seeds=$SEEDS --p2p.persistent_peers $PEERS ${EXTRA_FLAGS} &
+setsid "$@" --minimum-gas-prices=$MIN_GAS_PRICE --p2p.seeds=$_seeds --p2p.persistent_peers $_peers ${EXTRA_FLAGS} &
 pid=$!
 
 # Trap SIGTERM in the script and forward it to the process group
