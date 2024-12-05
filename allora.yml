@@ -1,0 +1,190 @@
+x-logging: &logging
+  logging:
+    driver: json-file
+    options:
+      max-size: 100m
+      max-file: "3"
+      tag: '{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}'
+
+services:
+  allorad:
+    build:
+      context: ./cosmovisor
+      dockerfile: Dockerfile.binary
+      args:
+        - COSMOVISOR_VERSION=${COSMOVISOR_VERSION:-v1.7.0}
+        - USER=allorad
+    image: allorad:local
+    pull_policy: never
+    user: allorad
+    restart: unless-stopped
+    stop_grace_period: 5m
+    environment:
+      - DAEMON_VERSION=${ALLORAD_VERSION}
+      - EXTRA_FLAGS=${EXTRA_FLAGS:-}
+      - NETWORK=${NETWORK}
+      - MONIKER=${MONIKER}
+      - CL_GRPC_PORT=${CL_GRPC_PORT:-9090}
+      - CL_P2P_PORT=${CL_P2P_PORT:-26656}
+      - CL_RPC_PORT=${CL_RPC_PORT:-26657}
+      - RPC_PORT=${RPC_PORT:-8545}
+      - WS_PORT=${WS_PORT:-8546}
+      - SNAPSHOT=${SNAPSHOT}
+      - RAPID_SYNC_URL=${RAPID_SYNC_URL}
+      - DAEMON_HOME=/cosmos
+      - DAEMON_NAME=allorad
+      - DAEMON_ALLOW_DOWNLOAD_BINARIES=true
+      - DAEMON_RESTART_AFTER_UPGRADE=true
+      - DAEMON_DATA_BACKUP_DIR=/cosmos
+      - CLIENT_DAEMON_NAME=allorad
+      - CLIENT_SKIP_UPGRADE=false
+      - CLIENT_START_PROCESS=false
+      - UNSAFE_SKIP_BACKUP=true
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - MIN_GAS_PRICE=${MIN_GAS_PRICE:-0.08}
+    ports:
+      - ${CL_P2P_PORT:-26656}:${CL_P2P_PORT:-26656}/tcp
+      - ${CL_RPC_PORT:-26657}:${CL_RPC_PORT:-26657}/tcp
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    volumes:
+      - consensus-data:/cosmos
+      - ./keys/consensus/priv_validator_key.json:/cosmos/config/priv_validator_key.json:rw
+      - ./keys/consensus/priv_validator_state.json:/cosmos/data/priv_validator_state.json:rw
+    entrypoint:
+      - docker-entrypoint.sh
+      - cosmovisor
+      - run
+      - start
+      - --home
+      - /cosmos
+      - --log_format
+      - json
+    labels:
+        - traefik.enable=true
+        - traefik.http.routers.${RPC_HOST}.service=${RPC_HOST}
+        - traefik.http.routers.${RPC_HOST}.entrypoints=websecure
+        - traefik.http.routers.${RPC_HOST}.rule=Host(`${RPC_HOST}.${DOMAIN}`)
+        - traefik.http.routers.${RPC_HOST}.tls.certresolver=letsencrypt
+        - traefik.http.routers.${RPC_HOST}lb.service=${RPC_HOST}
+        - traefik.http.routers.${RPC_HOST}lb.entrypoints=websecure
+        - traefik.http.routers.${RPC_HOST}lb.rule=Host(`${RPC_LB}.${DOMAIN}`)
+        - traefik.http.routers.${RPC_HOST}lb.tls.certresolver=letsencrypt
+        - traefik.http.services.${RPC_HOST}.loadbalancer.server.port=${RPC_PORT}
+        - traefik.http.routers.${WS_HOST:-alloraws}.service=${WS_HOST:-alloraws}
+        - traefik.http.routers.${WS_HOST:-alloraws}.entrypoints=websecure
+        - traefik.http.routers.${WS_HOST:-alloraws}.rule=Host(`${WS_HOST:-alloraws}.${DOMAIN}`)
+        - traefik.http.routers.${WS_HOST:-alloraws}.tls.certresolver=letsencrypt
+        - traefik.http.routers.${WS_HOST:-alloraws}lb.service=${WS_HOST:-alloraws}
+        - traefik.http.routers.${WS_HOST:-alloraws}lb.entrypoints=websecure
+        - traefik.http.routers.${WS_HOST:-alloraws}lb.rule=Host(`${WS_LB:-alloraws-lb}.${DOMAIN}`)
+        - traefik.http.routers.${WS_HOST:-alloraws}lb.tls.certresolver=letsencrypt
+        - traefik.http.services.${WS_HOST:-alloraws}.loadbalancer.server.port=${WS_PORT:-8546}
+        - metrics.scrape=true
+        - metrics.path=/metrics
+        - metrics.port=26660
+        - metrics.instance=allorad
+        - metrics.network=${NETWORK}
+
+  cli:
+    profiles: ["tools"]
+    build:
+      context: ./allora-cli
+      dockerfile: Dockerfile.binary
+      args:
+        - DAEMON_VERSION=${ALLORAD_VERSION}
+        - USER=allora
+    image: allora-cli:local
+    pull_policy: never
+    user: allora
+    volumes:
+      - ./keys/operator:/cosmos/keyring-test:rw
+      - ./keys/consensus/priv_validator_key.json:/cosmos/config/priv_validator_key.json:rw
+      - ./keys/consensus/priv_validator_state.json:/cosmos/data/priv_validator_state.json:rw
+
+  create-validator-keys:
+    profiles: ["tools"]
+    build:
+      context: ./allora-cli
+      dockerfile: Dockerfile.binary
+      args:
+        - DAEMON_VERSION=${ALLORAD_VERSION}
+        - USER=allora
+    image: allora-cli:local
+    pull_policy: never
+    user: root
+    volumes:
+      - ./keys/consensus:/data/config:rw
+    entrypoint: ["/bin/bash","-c"]
+    command:
+      - |
+        allorad init $MONIKER --chain-id $NETWORK --home /cosmos > /dev/null 2>&1
+        cp /cosmos/config/priv_validator_key.json /data/config/
+        cp /cosmos/data/priv_validator_state.json /data/config/
+        chown -R allora:allora /data/config/*
+        echo "Validator keys created!"
+
+  create-operator-wallet:
+    profiles: ["tools"]
+    build:
+      context: ./allora-cli
+      dockerfile: Dockerfile.binary
+      args:
+        - DAEMON_VERSION=${ALLORAD_VERSION}
+        - USER=allora
+    image: allora-cli:local
+    pull_policy: never
+    user: root
+    volumes:
+      - ./keys/operator:/cosmos/keyring-test:rw
+    entrypoint: ["/bin/bash","-c"]
+    command:
+      - |
+        allorad init $MONIKER --chain-id $NETWORK --home /cosmos > /dev/null 2>&1
+        allorad keys add $MONIKER --keyring-backend test --home /cosmos 2>&1 | tee /tmp/temp_backup
+        [ $${PIPESTATUS[0]} -eq 0 ] && sed -n '/- address/,$$p' /tmp/temp_backup > "/cosmos/keyring-test/${MONIKER}.backup" || rm /tmp/temp_backup
+        chown -R allora:allora /cosmos/keyring-test/*
+
+  register-validator:
+    profiles: ["tools"]
+    build:
+      context: ./allora-cli
+      dockerfile: Dockerfile.binary
+      args:
+        - DAEMON_VERSION=${ALLORAD_VERSION}
+        - USER=allora
+    image: allora-cli:local
+    pull_policy: never
+    user: allora
+    volumes:
+      - ./keys/consensus/priv_validator_key.json:/cosmos/config/priv_validator_key.json:ro
+      - ./keys/consensus/priv_validator_state.json:/cosmos/data/priv_validator_state.json:ro
+      - ./keys/operator:/cosmos/keyring-test:ro
+    entrypoint: ["/bin/bash","-c"]
+    command:
+      - |
+        echo "Validator pubkey:"
+        allorad --home /cosmos tendermint show-validator
+        cat > /cosmos/stake-validator.json << EOF
+        {
+            "pubkey": $(allorad --home /cosmos tendermint show-validator),
+            "amount": "1000000uallo",
+            "moniker": "$(echo $MONIKER)",
+            "commission-rate": "0.1",
+            "commission-max-rate": "0.2",
+            "commission-max-change-rate": "0.01",
+            "min-self-delegation": "1"
+        }
+        EOF
+        cat /cosmos/stake-validator.json
+        allorad --home /cosmos tx staking create-validator ./cosmos/stake-validator.json \
+        --chain-id=$NETWORK \
+        --from=$MONIKER \
+        --keyring-backend=test \
+        --node http://consensus:$CL_RPC_PORT/
+
+
+volumes:
+  consensus-data:
