@@ -155,7 +155,7 @@ if [ "$__should_update" -eq 2 ]; then
   # and we'll let cosmovisor handle the upgrade just in time.
   # Thankfully, allora keeps the upgrade name the same as the version tag, so no need to query
   # the tendermint API.
-  mkdir -p $__cosmovisor_path/$DAEMON_VERSION/bin
+  mkdir -p $__upgrades_path/$DAEMON_VERSION/bin
   wget $__daemon_download_url -O $__upgrades_path/$DAEMON_VERSION/bin/$DAEMON_NAME
   echo "Done!"
 elif [ "$__should_update" -eq 1 ]; then
