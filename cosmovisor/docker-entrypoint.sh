@@ -185,6 +185,10 @@ dasel put -f /cosmos/config/app.toml -v "0.0.0.0:${CL_GRPC_PORT}" grpc.address
 dasel put -f /cosmos/config/app.toml -v true telemetry.enabled
 dasel put -f /cosmos/config/client.toml -v "tcp://localhost:${CL_RPC_PORT}" node
 
+# Keep priv_validator_* files in a special folder.
+dasel put -f /cosmos/config/config.toml -v "${PRIV_VALIDATOR_PATH}/priv_validator_key.json" priv_validator_key_file
+dasel put -f /cosmos/config/config.toml -v "${PRIV_VALIDATOR_PATH}/priv_validator_state.json" priv_validator_state_file
+
 _seeds=$(curl -Ls ${__seeds_url})
 _peers=$(curl -Ls ${__peers_url})
 
