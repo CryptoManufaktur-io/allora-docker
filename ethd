@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 __project_name="Allora Docker"
 __app_name="Allora node"
-__sample_service="consensus"
+__sample_service="allorad"
 __docker_exe="docker"
 __compose_exe="docker compose"
 __compose_upgraded=0
@@ -20,7 +20,7 @@ version() {
 # Adjust for your clients and how to check their version
   case "${__value}" in
     *allora.yml* )
-      __docompose exec consensus cosmovisor version
+      __docompose exec allorad cosmovisor version
       echo
       ;;&
   esac
