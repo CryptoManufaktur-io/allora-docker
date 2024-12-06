@@ -6,6 +6,7 @@ FROM debian:bookworm-slim
 ARG USER=cosmos
 ARG UID=10001
 ARG COSMOVISOR_VERSION=v1.5.0
+ARG PRIV_VALIDATOR_PATH=/cosmos/priv_validator
 
 RUN apt-get update && apt-get install -y ca-certificates tzdata bash curl wget lz4 jq tar
 

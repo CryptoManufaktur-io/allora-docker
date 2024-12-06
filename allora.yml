@@ -42,7 +42,6 @@ services:
       - UNSAFE_SKIP_BACKUP=true
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - MIN_GAS_PRICE=${MIN_GAS_PRICE:-0.08}
-      - PRIV_VALIDATOR_PATH=/cosmos/priv_validator
     ports:
       - ${CL_P2P_PORT:-26656}:${CL_P2P_PORT:-26656}/tcp
       - ${CL_RPC_PORT:-26657}:${CL_RPC_PORT:-26657}/tcp
@@ -53,7 +52,6 @@ services:
         hard: 262144
     volumes:
       - consensus-data:/cosmos
-      - ./keys/consensus:/cosmos/priv_validator:rw
     entrypoint:
       - docker-entrypoint.sh
       - cosmovisor
@@ -127,6 +125,52 @@ services:
         chown -R allora:allora /data/config/*
         echo "Validator keys created!"
 
+  import-validator-keys:
+    profiles: ["tools"]
+    build:
+      context: ./allora-cli
+      dockerfile: Dockerfile.binary
+      args:
+        - DAEMON_VERSION=${ALLORAD_VERSION}
+        - USER=allora
+    image: allora-cli:local
+    pull_policy: never
+    user: root
+    volumes:
+      - consensus-data:/cosmos
+      - ./keys/consensus:/data/config:rw
+    entrypoint: ["/bin/bash","-c"]
+    command:
+      - |
+        echo "Importing validator key and state file from ./keys/consensus into container"
+        cp /data/config/priv_validator_key.json /cosmos/config/
+        cp /data/config/priv_validator_state.json /cosmos/data/
+        chown -R allora:allora /cosmos/config/priv_validator_key.json
+        chown -R allora:allora /cosmos/data/priv_validator_state.json
+        echo "Validator keys imported!"
+
+  export-validator-keys:
+    profiles: ["tools"]
+    build:
+      context: ./allora-cli
+      dockerfile: Dockerfile.binary
+      args:
+        - DAEMON_VERSION=${ALLORAD_VERSION}
+        - USER=allora
+    image: allora-cli:local
+    pull_policy: never
+    user: root
+    volumes:
+      - consensus-data:/cosmos
+      - ./keys/consensus:/data/config:rw
+    entrypoint: ["/bin/bash","-c"]
+    command:
+      - |
+        echo "Exporting validator key and state file from container to ./keys/consensus"
+        cp /cosmos/config/priv_validator_key.json /data/config/
+        cp /cosmos/data/priv_validator_state.json /data/config/
+        echo "Validator keys exported!"
+
   create-operator-wallet:
     profiles: ["tools"]
     build:
@@ -161,7 +205,6 @@ services:
     user: allora
     volumes:
       - ./keys/consensus/priv_validator_key.json:/cosmos/config/priv_validator_key.json:ro
-      - ./keys/consensus/priv_validator_state.json:/cosmos/data/priv_validator_state.json:ro
       - ./keys/operator:/cosmos/keyring-test:ro
     entrypoint: ["/bin/bash","-c"]
     command:
