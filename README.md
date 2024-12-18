@@ -13,6 +13,7 @@ If you want the consensus node RPC ports exposed locally, use `rpc-shared.yml` i
 
 - `./allorad install` brings in docker-ce, if you don't have Docker installed already.
 - `docker compose run --rm create-validator-keys` creates the consensus/validator node keys
+- `docker compose run --rm import-validator-keys` imports the generated consensus/validator node keys into the docker volume
 - `./allorad up`
 
 To update the software, run `./allorad update` and then `./allorad up`
@@ -26,6 +27,8 @@ Run `docker compose run --rm create-validator-keys`
 It is meant to be executed only once, it has no sanity checks and creates the `priv_validator_key.json`, `priv_validator_state.json` and `voter_state.json` files inside the `keys/consensus/` folder.
 
 Remember to backup those files if you're running a validator.
+
+You can also export the keys from the docker volume, into the `keys/consensus/` folder by running: `docker compose run --rm export-validator-keys`.
 
 ### Operator Wallet Creation
 
