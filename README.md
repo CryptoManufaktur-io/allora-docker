@@ -48,7 +48,8 @@ This assumes an operator wallet `keys/operator/$MONIKER.info` is present, and th
 
 An image with the `allorad` binary is also avilable, e.g:
 
-`docker compose run --rm cli cosmos show-validator`
+- `docker compose run --rm cli cosmos show-validator`
+- `docker compose run --rm cli tx gov vote 12 yes --from YOUR-MONIKER --chain-id allora-testnet-1 --gas-adjustment 1.4 --fees 2000000uallo --keyring-backend=test --node http://allorad:26658/`
 
 ## Version
 
