@@ -26,7 +26,7 @@ RUN mkdir /cosmos/config
 RUN mkdir /cosmos/data
 RUN chown -R ${USER}:${USER} /cosmos && chmod 777 /cosmos
 
-RUN wget https://github.com/allora-network/allora-chain/releases/download/$DAEMON_VERSION/allora-chain_${DAEMON_VERSION_NUMBER}_linux_amd64 -O /usr/local/bin/allorad
+RUN wget https://github.com/allora-network/allora-chain/releases/download/$DAEMON_VERSION/allorad_linux_amd64 -O /usr/local/bin/allorad
 RUN chown ${USER}:${USER} /usr/local/bin/allorad
 
 # Belt and suspenders
