@@ -235,14 +235,16 @@ services:
   touch-version:
     profiles: ["tools"]
     build:
-      context: ./allora-cli
+      context: ./cosmovisor
       dockerfile: Dockerfile.binary
       args:
-        - DAEMON_VERSION=${ALLORAD_VERSION}
-        - USER=allora
-    image: allora-cli:local
+        - COSMOVISOR_VERSION=${COSMOVISOR_VERSION:-v1.7.0}
+        - USER=allorad
+    image: allorad:local
     pull_policy: never
     user: allorad
+    environment:
+      - DAEMON_VERSION=${ALLORAD_VERSION}
     volumes:
       - consensus-data:/cosmos
     entrypoint: ["/bin/bash","-c"]
@@ -250,6 +252,7 @@ services:
       - |
         echo "Setting /cosmos/.version to $DAEMON_VERSION"
         echo "$DAEMON_VERSION" > /cosmos/.version
+        cat /cosmos/.version
         echo "Done!"
 
 
