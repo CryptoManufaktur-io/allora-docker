@@ -229,6 +229,29 @@ services:
         --keyring-backend=test \
         --node http://consensus:$CL_RPC_PORT/
 
+  # For some reason, allorad v0.8.0 version command is broken
+  # We've added a way to cache the version number in a file
+  # or we can set it manually using this.
+  touch-version:
+    profiles: ["tools"]
+    build:
+      context: ./allora-cli
+      dockerfile: Dockerfile.binary
+      args:
+        - DAEMON_VERSION=${ALLORAD_VERSION}
+        - USER=allora
+    image: allora-cli:local
+    pull_policy: never
+    user: root
+    volumes:
+      - consensus-data:/cosmos
+    entrypoint: ["/bin/bash","-c"]
+    command:
+      - |
+        echo "Setting /cosmos/.version to $DAEMON_VERSION"
+        echo "$DAEMON_VERSION" > /cosmos/.version
+        echo "Done!"
+
 
 volumes:
   consensus-data:
