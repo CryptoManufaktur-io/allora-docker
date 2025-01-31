@@ -55,4 +55,4 @@ An image with the `allorad` binary is also avilable, e.g:
 
 Allora Docker uses a semver scheme.
 
-This is allora-docker v1.0.2
+This is allora-docker v1.0.3
