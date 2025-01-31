@@ -242,7 +242,7 @@ services:
         - USER=allora
     image: allora-cli:local
     pull_policy: never
-    user: root
+    user: allorad
     volumes:
       - consensus-data:/cosmos
     entrypoint: ["/bin/bash","-c"]
