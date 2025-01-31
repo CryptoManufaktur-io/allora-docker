@@ -250,8 +250,8 @@ services:
     entrypoint: ["/bin/bash","-c"]
     command:
       - |
-        echo "Setting /cosmos/.version to $DAEMON_VERSION"
-        echo "$DAEMON_VERSION" > /cosmos/.version
+        echo "Setting /cosmos/.version to $$DAEMON_VERSION"
+        echo "$$DAEMON_VERSION" > /cosmos/.version
         cat /cosmos/.version
         echo "Done!"
 
