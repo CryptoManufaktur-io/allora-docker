@@ -142,6 +142,13 @@ compare_versions() {
 # Also don't know why $DAEMON_NAME writes to stderr.
 __current_version=$($__current_path/bin/$DAEMON_NAME version 2>&1)
 
+if echo "$__current_version" | sed -n '/^v[0-9]\+\.[0-9]\+\.[0-9]\+$/p' | grep -q .; then
+  echo "$__current_version" > /cosmos/.version
+else
+  echo "allorad returned an invalid version number, using cached version."
+  __current_version=$(cat /cosmos/.version)
+fi
+
 echo "Current version: ${__current_version}. Desired version: ${DAEMON_VERSION}"
 
 compare_versions $__current_version $DAEMON_VERSION
