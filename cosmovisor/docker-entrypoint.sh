@@ -3,7 +3,7 @@ set -euo pipefail
 
 # This is specific to each chain.
 __daemon_version_number=$(echo "$DAEMON_VERSION" | sed 's/^v//')
-__daemon_download_url=https://github.com/allora-network/allora-chain/releases/download/$DAEMON_VERSION/allorad_linux_amd64
+__daemon_download_url=https://github.com/allora-network/allora-chain/releases/download/$DAEMON_VERSION/allora-chain_${__daemon_version_number}_linux_amd64
 __config_url="https://raw.githubusercontent.com/allora-network/networks/refs/heads/main/${NETWORK}"
 __genesis_url="${__config_url}/genesis.json"
 __seeds_url="${__config_url}/seeds.txt"
