@@ -169,7 +169,7 @@ if [ "$__should_update" -eq 2 ]; then
 elif [ "$__should_update" -eq 1 ]; then
   echo "Updating binary for current version."
   wget $__daemon_download_url -O $__current_path/bin/$DAEMON_NAME
-  chmod +x $__upgrades_path/$DAEMON_VERSION/bin/$DAEMON_NAME
+  chmod +x $__current_path/bin/$DAEMON_NAME
   echo "Done!"
 else
   echo "No updates needed."
